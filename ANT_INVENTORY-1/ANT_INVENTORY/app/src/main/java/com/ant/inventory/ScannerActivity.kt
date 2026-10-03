@@ -1,22 +1,21 @@
 package com.ant.inventory
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Size
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class ScannerActivity : Activity(), LifecycleOwner {
+class ScannerActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_BARCODE = "barcode_value"
@@ -54,7 +53,12 @@ class ScannerActivity : Activity(), LifecycleOwner {
             imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy -> processImage(imageProxy) }
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalysis)
+                cameraProvider.bindToLifecycle(
+                    this,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    imageAnalysis
+                )
             } catch (e: Exception) {
                 runOnUiThread { tvHint.text = "Camera error: ${e.message}" }
             }
