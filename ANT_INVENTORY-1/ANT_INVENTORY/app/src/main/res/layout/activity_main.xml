@@ -11,7 +11,6 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Header -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -23,7 +22,6 @@
             android:paddingTop="8dp"
             android:paddingBottom="20dp" />
 
-        <!-- Form Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -41,7 +39,6 @@
                 android:textColor="#1565C0"
                 android:paddingBottom="12dp" />
 
-            <!-- Order No row with scan button -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -72,7 +69,6 @@
 
             </LinearLayout>
 
-            <!-- Part No row with scan button -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -103,7 +99,6 @@
 
             </LinearLayout>
 
-            <!-- Quantity -->
             <EditText
                 android:id="@+id/etQty"
                 android:layout_width="match_parent"
@@ -168,7 +163,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Saved Entries Section -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
