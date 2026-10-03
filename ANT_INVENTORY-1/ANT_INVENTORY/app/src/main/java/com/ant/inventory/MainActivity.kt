@@ -1,15 +1,19 @@
 package com.ant.inventory
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.*
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
 import java.text.SimpleDateFormat
@@ -26,18 +30,22 @@ data class InventoryEntry(
 
 class MainActivity : Activity() {
 
+    companion object {
+        private const val REQUEST_CAMERA_ORDER = 1001
+        private const val REQUEST_CAMERA_PART  = 1002
+        private const val SCAN_ORDER_RC        = 2001
+        private const val SCAN_PART_RC         = 2002
+    }
+
     private val prefs by lazy { getSharedPreferences("inventory", Context.MODE_PRIVATE) }
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
-    // Form fields
     private lateinit var etOrder: EditText
     private lateinit var etPart: EditText
     private lateinit var etQty: EditText
     private lateinit var spinnerLocation: Spinner
     private lateinit var btnSave: Button
     private lateinit var btnExport: Button
-
-    // List area
     private lateinit var etSearch: EditText
     private lateinit var tvEntryCount: TextView
     private lateinit var listContainer: LinearLayout
@@ -62,16 +70,23 @@ class MainActivity : Activity() {
     }
 
     private fun bindViews() {
-        etOrder = findViewById(R.id.etOrder)
-        etPart = findViewById(R.id.etPart)
-        etQty = findViewById(R.id.etQty)
+        etOrder         = findViewById(R.id.etOrder)
+        etPart          = findViewById(R.id.etPart)
+        etQty           = findViewById(R.id.etQty)
         spinnerLocation = findViewById(R.id.spinnerLocation)
-        btnSave = findViewById(R.id.btnSave)
-        btnExport = findViewById(R.id.btnExport)
-        etSearch = findViewById(R.id.etSearch)
-        tvEntryCount = findViewById(R.id.tvEntryCount)
-        listContainer = findViewById(R.id.listContainer)
-        tvEmpty = findViewById(R.id.tvEmpty)
+        btnSave         = findViewById(R.id.btnSave)
+        btnExport       = findViewById(R.id.btnExport)
+        etSearch        = findViewById(R.id.etSearch)
+        tvEntryCount    = findViewById(R.id.tvEntryCount)
+        listContainer   = findViewById(R.id.listContainer)
+        tvEmpty         = findViewById(R.id.tvEmpty)
+
+        findViewById<ImageButton>(R.id.btnScanOrder).setOnClickListener {
+            requestCameraAndScan(REQUEST_CAMERA_ORDER, SCAN_ORDER_RC)
+        }
+        findViewById<ImageButton>(R.id.btnScanPart).setOnClickListener {
+            requestCameraAndScan(REQUEST_CAMERA_PART, SCAN_PART_RC)
+        }
     }
 
     private fun setupSpinner() {
@@ -85,7 +100,7 @@ class MainActivity : Activity() {
     private fun setupListeners() {
         btnSave.setOnClickListener { saveEntry() }
         btnExport.setOnClickListener { exportCsv() }
-        btnClearAll.setOnClickListener { confirmClearAll() }
+        findViewById<Button>(R.id.btnClearAll).setOnClickListener { confirmClearAll() }
 
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
@@ -97,7 +112,44 @@ class MainActivity : Activity() {
         })
     }
 
-    private val btnClearAll: Button get() = findViewById(R.id.btnClearAll)
+    private fun requestCameraAndScan(cameraRequestCode: Int, scanRequestCode: Int) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED) {
+            launchScanner(scanRequestCode)
+        } else {
+            pendingScanRc = scanRequestCode
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.CAMERA), cameraRequestCode
+            )
+        }
+    }
+
+    private var pendingScanRc: Int = -1
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            launchScanner(pendingScanRc)
+        } else {
+            Toast.makeText(this, "Camera permission is required to scan barcodes", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun launchScanner(scanRequestCode: Int) {
+        val intent = Intent(this, ScannerActivity::class.java)
+        startActivityForResult(intent, scanRequestCode)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != RESULT_OK) return
+        val scanned = data?.getStringExtra(ScannerActivity.EXTRA_BARCODE) ?: return
+        when (requestCode) {
+            SCAN_ORDER_RC -> etOrder.setText(scanned)
+            SCAN_PART_RC  -> etPart.setText(scanned)
+        }
+    }
 
     private fun saveEntry() {
         val orderNo = etOrder.text.toString().trim()
@@ -120,8 +172,8 @@ class MainActivity : Activity() {
         )
 
         val serialized = "${entry.id}\t${entry.orderNo}\t${entry.partNo}\t${entry.quantity}\t${entry.location}\t${entry.timestamp}"
-        val existing = prefs.getString("rows", "")!!
-        val updated  = if (existing.isEmpty()) serialized else "$existing\n$serialized"
+        val existing   = prefs.getString("rows", "")!!
+        val updated    = if (existing.isEmpty()) serialized else "$existing\n$serialized"
         prefs.edit().putString("rows", updated).apply()
 
         allEntries.add(0, entry)
@@ -177,7 +229,6 @@ class MainActivity : Activity() {
         val parts = line.split("\t")
         return when {
             parts.size == 6 -> InventoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
-            // Legacy 5-field format (no id): generate one
             parts.size == 5 -> InventoryEntry(UUID.randomUUID().toString(), parts[0], parts[1], parts[2], parts[3], parts[4])
             else -> null
         }
@@ -198,18 +249,13 @@ class MainActivity : Activity() {
             e.partNo.contains(searchQuery, ignoreCase = true) ||
             e.location.contains(searchQuery, ignoreCase = true)
         }
-
         tvEntryCount.text = "${filtered.size} / ${allEntries.size} entries"
         tvEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
-
-        filtered.forEach { entry ->
-            listContainer.addView(buildEntryCard(entry))
-        }
+        filtered.forEach { listContainer.addView(buildEntryCard(it)) }
     }
 
     private fun buildEntryCard(entry: InventoryEntry): View {
-        val inflater = layoutInflater
-        val card = inflater.inflate(R.layout.item_entry, listContainer, false)
+        val card = layoutInflater.inflate(R.layout.item_entry, listContainer, false)
         card.findViewById<TextView>(R.id.tvOrderNo).text   = "Order: ${entry.orderNo}"
         card.findViewById<TextView>(R.id.tvPartNo).text    = "Part:  ${entry.partNo}"
         card.findViewById<TextView>(R.id.tvQty).text       = "Qty:   ${entry.quantity}"
@@ -229,14 +275,10 @@ class MainActivity : Activity() {
             listOf(e.orderNo, e.partNo, e.quantity, e.location, e.timestamp)
                 .joinToString(",") { v -> "\"${v.replace("\"", "\"\"")}\"" }
         }
-        val csv = header + rows
-
         try {
             val file = File(cacheDir, "ant_inventory_${System.currentTimeMillis()}.csv")
-            file.writeText(csv)
-            val uri: Uri = FileProvider.getUriForFile(
-                this, "${packageName}.fileprovider", file
-            )
+            file.writeText(header + rows)
+            val uri: Uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/csv"
                 putExtra(Intent.EXTRA_STREAM, uri)
