@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <View
+        android:layout_width="260dp"
+        android:layout_height="160dp"
+        android:layout_gravity="center"
+        android:background="@drawable/scan_frame" />
+
+    <TextView
+        android:id="@+id/tvScanHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="200dp"
+        android:gravity="center"
+        android:text="Point camera at barcode"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <ImageButton
+        android:id="@+id/btnCancelScan"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="40dp"
+        android:background="@drawable/circle_button"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:contentDescription="Cancel scan"
+        android:tint="#FFFFFF" />
+
+</FrameLayout>
