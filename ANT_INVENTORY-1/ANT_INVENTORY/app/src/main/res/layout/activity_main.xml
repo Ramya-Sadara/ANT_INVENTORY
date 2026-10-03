@@ -41,28 +41,69 @@
                 android:textColor="#1565C0"
                 android:paddingBottom="12dp" />
 
-            <EditText
-                android:id="@+id/etOrder"
+            <!-- Order No row with scan button -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Order No / Barcode"
-                android:inputType="text"
-                android:singleLine="true"
+                android:orientation="horizontal"
                 android:layout_marginBottom="10dp"
-                android:background="@drawable/field_background"
-                android:padding="12dp" />
+                android:gravity="center_vertical">
 
-            <EditText
-                android:id="@+id/etPart"
+                <EditText
+                    android:id="@+id/etOrder"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Order No / Barcode"
+                    android:inputType="text"
+                    android:singleLine="true"
+                    android:background="@drawable/field_background"
+                    android:padding="12dp" />
+
+                <ImageButton
+                    android:id="@+id/btnScanOrder"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@android:drawable/ic_menu_camera"
+                    android:background="@drawable/scan_button_background"
+                    android:tint="#FFFFFF"
+                    android:contentDescription="Scan Order barcode" />
+
+            </LinearLayout>
+
+            <!-- Part No row with scan button -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Part No / Barcode"
-                android:inputType="text"
-                android:singleLine="true"
+                android:orientation="horizontal"
                 android:layout_marginBottom="10dp"
-                android:background="@drawable/field_background"
-                android:padding="12dp" />
+                android:gravity="center_vertical">
 
+                <EditText
+                    android:id="@+id/etPart"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Part No / Barcode"
+                    android:inputType="text"
+                    android:singleLine="true"
+                    android:background="@drawable/field_background"
+                    android:padding="12dp" />
+
+                <ImageButton
+                    android:id="@+id/btnScanPart"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@android:drawable/ic_menu_camera"
+                    android:background="@drawable/scan_button_background"
+                    android:tint="#FFFFFF"
+                    android:contentDescription="Scan Part barcode" />
+
+            </LinearLayout>
+
+            <!-- Quantity -->
             <EditText
                 android:id="@+id/etQty"
                 android:layout_width="match_parent"
@@ -90,7 +131,6 @@
                 android:background="@drawable/field_background"
                 android:padding="8dp" />
 
-            <!-- Save Button -->
             <Button
                 android:id="@+id/btnSave"
                 android:layout_width="match_parent"
@@ -100,7 +140,6 @@
                 android:backgroundTint="#1565C0"
                 android:layout_marginBottom="8dp" />
 
-            <!-- Action row: Export + Clear All -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -137,7 +176,6 @@
             android:background="@drawable/card_background"
             android:padding="16dp">
 
-            <!-- Header row: title + count -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -161,9 +199,9 @@
                     android:text="0 entries"
                     android:textSize="13sp"
                     android:textColor="#777777" />
+
             </LinearLayout>
 
-            <!-- Search -->
             <EditText
                 android:id="@+id/etSearch"
                 android:layout_width="match_parent"
@@ -176,7 +214,6 @@
                 android:padding="10dp"
                 android:textSize="14sp" />
 
-            <!-- Empty state -->
             <TextView
                 android:id="@+id/tvEmpty"
                 android:layout_width="match_parent"
@@ -188,7 +225,6 @@
                 android:paddingBottom="24dp"
                 android:visibility="gone" />
 
-            <!-- Entry list -->
             <LinearLayout
                 android:id="@+id/listContainer"
                 android:layout_width="match_parent"
