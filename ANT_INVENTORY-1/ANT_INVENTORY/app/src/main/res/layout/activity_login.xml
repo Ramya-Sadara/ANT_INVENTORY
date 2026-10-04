@@ -9,11 +9,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="32dp"
+        android:padding="24dp"
         android:gravity="center_horizontal">
 
         <TextView
-            android:id="@+id/tvTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="ANT INVENTORY"
@@ -21,19 +20,54 @@
             android:textStyle="bold"
             android:textColor="#1565C0"
             android:gravity="center"
-            android:paddingTop="56dp"
+            android:paddingTop="48dp"
             android:paddingBottom="8dp" />
 
         <TextView
-            android:id="@+id/tvSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enter your PIN to continue"
-            android:textSize="15sp"
+            android:text="Sign in to continue"
+            android:textSize="14sp"
             android:textColor="#777777"
             android:gravity="center"
-            android:paddingBottom="40dp" />
+            android:paddingBottom="32dp" />
 
+        <!-- Tab switcher -->
+        <LinearLayout
+            android:id="@+id/tabContainer"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:background="@drawable/tab_container"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:id="@+id/tabSignIn"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Sign In"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/tab_selected"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/tabRegister"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Register"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/tab_unselected"
+                android:textColor="#1565C0" />
+
+        </LinearLayout>
+
+        <!-- Error -->
         <TextView
             android:id="@+id/tvError"
             android:layout_width="match_parent"
@@ -41,97 +75,108 @@
             android:textColor="#C62828"
             android:textSize="13sp"
             android:gravity="center"
-            android:paddingBottom="12dp"
+            android:paddingBottom="8dp"
             android:visibility="gone" />
 
-        <!-- Set PIN (first launch) -->
+        <!-- Sign In layout -->
         <LinearLayout
-            android:id="@+id/layoutSetPin"
+            android:id="@+id/layoutSignIn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
 
             <EditText
-                android:id="@+id/etNewPin"
-                android:layout_width="match_parent"
-                android:layout_height="58dp"
-                android:hint="Enter new PIN (min 4 digits)"
-                android:inputType="numberPassword"
-                android:maxLength="8"
-                android:gravity="center"
-                android:textSize="24sp"
-                android:letterSpacing="0.3"
-                android:layout_marginBottom="14dp"
-                android:background="@drawable/field_background"
-                android:padding="12dp" />
-
-            <EditText
-                android:id="@+id/etConfirmPin"
-                android:layout_width="match_parent"
-                android:layout_height="58dp"
-                android:hint="Confirm PIN"
-                android:inputType="numberPassword"
-                android:maxLength="8"
-                android:gravity="center"
-                android:textSize="24sp"
-                android:letterSpacing="0.3"
-                android:layout_marginBottom="24dp"
-                android:background="@drawable/field_background"
-                android:padding="12dp" />
-
-            <Button
-                android:id="@+id/btnSetPin"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="SET PIN &amp; CONTINUE"
-                android:textSize="15sp"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#1565C0" />
-
-        </LinearLayout>
-
-        <!-- Enter PIN (returning users) -->
-        <LinearLayout
-            android:id="@+id/layoutEnterPin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <EditText
-                android:id="@+id/etPin"
-                android:layout_width="match_parent"
-                android:layout_height="58dp"
-                android:hint="Enter PIN"
-                android:inputType="numberPassword"
-                android:maxLength="8"
-                android:gravity="center"
-                android:textSize="28sp"
-                android:letterSpacing="0.4"
-                android:layout_marginBottom="24dp"
-                android:background="@drawable/field_background"
-                android:padding="12dp" />
-
-            <Button
-                android:id="@+id/btnLogin"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="UNLOCK"
-                android:textSize="15sp"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#1565C0"
-                android:layout_marginBottom="16dp" />
-
-            <TextView
-                android:id="@+id/tvForgotPin"
+                android:id="@+id/etSignInUser"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Forgot PIN? Reset it"
+                android:hint="Username"
+                android:inputType="text"
+                android:singleLine="true"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/etSignInPass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Password"
+                android:inputType="textPassword"
+                android:singleLine="true"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <Button
+                android:id="@+id/btnSignIn"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="SIGN IN"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1565C0"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/tvForgotPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Forgot password? Reset it"
                 android:textColor="#1565C0"
                 android:textSize="14sp"
                 android:gravity="center"
                 android:padding="8dp" />
+
+        </LinearLayout>
+
+        <!-- Register layout -->
+        <LinearLayout
+            android:id="@+id/layoutRegister"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/etRegUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Choose a username"
+                android:inputType="text"
+                android:singleLine="true"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/etRegPass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Choose a password (min 4 characters)"
+                android:inputType="textPassword"
+                android:singleLine="true"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/etRegConfirmPass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Confirm password"
+                android:inputType="textPassword"
+                android:singleLine="true"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <Button
+                android:id="@+id/btnRegister"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="CREATE ACCOUNT"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1565C0" />
 
         </LinearLayout>
 
