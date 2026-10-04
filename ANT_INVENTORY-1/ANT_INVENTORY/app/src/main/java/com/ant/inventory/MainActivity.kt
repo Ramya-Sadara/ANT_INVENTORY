@@ -15,7 +15,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import com.google.firebase.auth.FirebaseAuth
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -81,7 +80,6 @@ class MainActivity : AppCompatActivity() {
         tvEntryCount    = findViewById(R.id.tvEntryCount)
         listContainer   = findViewById(R.id.listContainer)
         tvEmpty         = findViewById(R.id.tvEmpty)
-
         findViewById<ImageButton>(R.id.btnScanOrder).setOnClickListener {
             requestCameraAndScan(REQUEST_CAMERA_ORDER, SCAN_ORDER_RC)
         }
@@ -114,22 +112,17 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    // ── Logout ───────────────────────────────────────────────────────────────
-
     private fun logout() {
         AlertDialog.Builder(this)
-            .setTitle("Logout")
-            .setMessage("Are you sure you want to logout?")
-            .setPositiveButton("Logout") { _, _ ->
-                FirebaseAuth.getInstance().signOut()
+            .setTitle("Lock App")
+            .setMessage("Lock the app and return to PIN screen?")
+            .setPositiveButton("Lock") { _, _ ->
                 startActivity(Intent(this, LoginActivity::class.java))
                 finish()
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
-
-    // ── Barcode scanning ────────────────────────────────────────────────────
 
     private fun requestCameraAndScan(cameraRequestCode: Int, scanRequestCode: Int) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -156,8 +149,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchScanner(scanRequestCode: Int) {
-        val intent = Intent(this, ScannerActivity::class.java)
-        startActivityForResult(intent, scanRequestCode)
+        startActivityForResult(Intent(this, ScannerActivity::class.java), scanRequestCode)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -170,19 +162,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ── Save / Delete / ClearAll ─────────────────────────────────────────────
-
     private fun saveEntry() {
         val orderNo = etOrder.text.toString().trim()
         val partNo  = etPart.text.toString().trim()
         val qty     = etQty.text.toString().trim()
         val loc     = spinnerLocation.selectedItem.toString()
-
         if (orderNo.isEmpty() || partNo.isEmpty() || qty.isEmpty()) {
             Toast.makeText(this, "Order No, Part No and Quantity are required", Toast.LENGTH_SHORT).show()
             return
         }
-
         val entry = InventoryEntry(
             id        = UUID.randomUUID().toString(),
             orderNo   = orderNo,
@@ -191,12 +179,9 @@ class MainActivity : AppCompatActivity() {
             location  = loc,
             timestamp = dateFormat.format(Date())
         )
-
         val serialized = "${entry.id}\t${entry.orderNo}\t${entry.partNo}\t${entry.quantity}\t${entry.location}\t${entry.timestamp}"
         val existing   = prefs.getString("rows", "")!!
-        val updated    = if (existing.isEmpty()) serialized else "$existing\n$serialized"
-        prefs.edit().putString("rows", updated).apply()
-
+        prefs.edit().putString("rows", if (existing.isEmpty()) serialized else "$existing\n$serialized").apply()
         allEntries.add(0, entry)
         etOrder.text.clear()
         etPart.text.clear()
@@ -220,10 +205,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmClearAll() {
-        if (allEntries.isEmpty()) {
-            Toast.makeText(this, "No entries to clear", Toast.LENGTH_SHORT).show()
-            return
-        }
+        if (allEntries.isEmpty()) { Toast.makeText(this, "No entries to clear", Toast.LENGTH_SHORT).show(); return }
         AlertDialog.Builder(this)
             .setTitle("Clear All")
             .setMessage("Delete all ${allEntries.size} entries? This cannot be undone.")
@@ -236,8 +218,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .show()
     }
-
-    // ── Persistence ──────────────────────────────────────────────────────────
 
     private fun loadEntries() {
         allEntries.clear()
@@ -258,13 +238,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun persistEntries() {
-        val rows = allEntries.reversed().joinToString("\n") {
+        prefs.edit().putString("rows", allEntries.reversed().joinToString("\n") {
             "${it.id}\t${it.orderNo}\t${it.partNo}\t${it.quantity}\t${it.location}\t${it.timestamp}"
-        }
-        prefs.edit().putString("rows", rows).apply()
+        }).apply()
     }
-
-    // ── List UI ──────────────────────────────────────────────────────────────
 
     private fun refreshList() {
         listContainer.removeAllViews()
@@ -290,13 +267,8 @@ class MainActivity : AppCompatActivity() {
         return card
     }
 
-    // ── CSV Export ───────────────────────────────────────────────────────────
-
     private fun exportCsv() {
-        if (allEntries.isEmpty()) {
-            Toast.makeText(this, "No entries to export", Toast.LENGTH_SHORT).show()
-            return
-        }
+        if (allEntries.isEmpty()) { Toast.makeText(this, "No entries to export", Toast.LENGTH_SHORT).show(); return }
         val header = "Order No,Part No,Physical Quantity,Location,Date\n"
         val rows   = allEntries.reversed().joinToString("\n") { e ->
             listOf(e.orderNo, e.partNo, e.quantity, e.location, e.timestamp)
