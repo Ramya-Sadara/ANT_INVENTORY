@@ -11,8 +11,8 @@ android {
         applicationId  = "com.ant.inventory"
         minSdk         = 24
         targetSdk      = 35
-        versionCode    = 4
-        versionName    = "4.0"
+        versionCode    = 5
+        versionName    = "5.0"
     }
 
     buildTypes {
@@ -45,4 +45,7 @@ dependencies {
 
     // ML Kit Barcode Scanning
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    // Biometric (fingerprint / face / device PIN fallback)
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
 }
