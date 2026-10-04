@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F7FA"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ANT INVENTORY"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#1565C0"
+            android:gravity="center"
+            android:paddingTop="48dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sign in to continue"
+            android:textSize="14sp"
+            android:textColor="#777777"
+            android:gravity="center"
+            android:paddingBottom="36dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:background="@drawable/tab_container"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:id="@+id/tabEmail"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Email"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/tab_selected"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/tabPhone"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Phone"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/tab_unselected"
+                android:textColor="#1565C0" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#C62828"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
+
+        <!-- Email layout -->
+        <LinearLayout
+            android:id="@+id/layoutEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Email address"
+                android:inputType="textEmailAddress"
+                android:singleLine="true"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Password"
+                android:inputType="textPassword"
+                android:singleLine="true"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <Button
+                android:id="@+id/btnEmailLogin"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="SIGN IN"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1565C0"
+                android:layout_marginBottom="10dp" />
+
+            <Button
+                android:id="@+id/btnEmailRegister"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="CREATE ACCOUNT"
+                android:textColor="#1565C0"
+                android:backgroundTint="#E3F2FD" />
+
+        </LinearLayout>
+
+        <!-- Phone layout -->
+        <LinearLayout
+            android:id="@+id/layoutPhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Enter your phone number with country code"
+                android:textSize="13sp"
+                android:textColor="#555555"
+                android:paddingBottom="8dp" />
+
+            <EditText
+                android:id="@+id/etPhone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="+44 7911 123456"
+                android:inputType="phone"
+                android:singleLine="true"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <Button
+                android:id="@+id/btnSendOtp"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="SEND OTP"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1565C0" />
+
+        </LinearLayout>
+
+        <!-- OTP layout -->
+        <LinearLayout
+            android:id="@+id/layoutOtp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Enter the 6-digit OTP sent to your phone"
+                android:textSize="13sp"
+                android:textColor="#555555"
+                android:paddingBottom="8dp" />
+
+            <EditText
+                android:id="@+id/etOtp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="6-digit OTP"
+                android:inputType="numberPassword"
+                android:singleLine="true"
+                android:maxLength="6"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/field_background"
+                android:padding="14dp" />
+
+            <Button
+                android:id="@+id/btnVerifyOtp"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="VERIFY &amp; SIGN IN"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1565C0"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/tvResendOtp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Resend OTP"
+                android:textColor="#1565C0"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:padding="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
