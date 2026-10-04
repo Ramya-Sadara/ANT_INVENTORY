@@ -1,7 +1,6 @@
 package com.ant.inventory
 
 import android.Manifest
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
@@ -12,9 +11,11 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.google.firebase.auth.FirebaseAuth
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -28,7 +29,7 @@ data class InventoryEntry(
     val timestamp: String
 )
 
-class MainActivity : Activity() {
+class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_CAMERA_ORDER = 1001
@@ -101,6 +102,7 @@ class MainActivity : Activity() {
         btnSave.setOnClickListener { saveEntry() }
         btnExport.setOnClickListener { exportCsv() }
         findViewById<Button>(R.id.btnClearAll).setOnClickListener { confirmClearAll() }
+        findViewById<Button>(R.id.btnLogout).setOnClickListener { logout() }
 
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
@@ -111,6 +113,23 @@ class MainActivity : Activity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
     }
+
+    // ── Logout ───────────────────────────────────────────────────────────────
+
+    private fun logout() {
+        AlertDialog.Builder(this)
+            .setTitle("Logout")
+            .setMessage("Are you sure you want to logout?")
+            .setPositiveButton("Logout") { _, _ ->
+                FirebaseAuth.getInstance().signOut()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    // ── Barcode scanning ────────────────────────────────────────────────────
 
     private fun requestCameraAndScan(cameraRequestCode: Int, scanRequestCode: Int) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -150,6 +169,8 @@ class MainActivity : Activity() {
             SCAN_PART_RC  -> etPart.setText(scanned)
         }
     }
+
+    // ── Save / Delete / ClearAll ─────────────────────────────────────────────
 
     private fun saveEntry() {
         val orderNo = etOrder.text.toString().trim()
@@ -216,6 +237,8 @@ class MainActivity : Activity() {
             .show()
     }
 
+    // ── Persistence ──────────────────────────────────────────────────────────
+
     private fun loadEntries() {
         allEntries.clear()
         prefs.getString("rows", "")!!.lines()
@@ -241,6 +264,8 @@ class MainActivity : Activity() {
         prefs.edit().putString("rows", rows).apply()
     }
 
+    // ── List UI ──────────────────────────────────────────────────────────────
+
     private fun refreshList() {
         listContainer.removeAllViews()
         val filtered = if (searchQuery.isEmpty()) allEntries
@@ -264,6 +289,8 @@ class MainActivity : Activity() {
         card.findViewById<ImageButton>(R.id.btnDelete).setOnClickListener { deleteEntry(entry) }
         return card
     }
+
+    // ── CSV Export ───────────────────────────────────────────────────────────
 
     private fun exportCsv() {
         if (allEntries.isEmpty()) {
