@@ -11,17 +11,37 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
+        <!-- Header with Logout -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="ANT INVENTORY"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:textColor="#1565C0"
-            android:gravity="center"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:paddingTop="8dp"
-            android:paddingBottom="20dp" />
+            android:paddingBottom="20dp">
 
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="ANT INVENTORY"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="#1565C0"
+                android:gravity="center" />
+
+            <Button
+                android:id="@+id/btnLogout"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Logout"
+                android:textSize="12sp"
+                android:textColor="#C62828"
+                android:backgroundTint="#FFEBEE" />
+
+        </LinearLayout>
+
+        <!-- Form Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -39,6 +59,7 @@
                 android:textColor="#1565C0"
                 android:paddingBottom="12dp" />
 
+            <!-- Order No with scan button -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -69,6 +90,7 @@
 
             </LinearLayout>
 
+            <!-- Part No with scan button -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -163,6 +185,7 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Saved Entries -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
