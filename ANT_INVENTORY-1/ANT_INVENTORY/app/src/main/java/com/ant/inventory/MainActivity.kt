@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
+import android.text.InputType
 import android.text.TextWatcher
 import android.view.View
 import android.widget.*
@@ -25,7 +26,8 @@ data class InventoryEntry(
     val partNo: String,
     val quantity: String,
     val location: String,
-    val timestamp: String
+    val timestamp: String,
+    val remarks: String = ""
 )
 
 class MainActivity : AppCompatActivity() {
@@ -35,6 +37,9 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_CAMERA_PART  = 1002
         private const val SCAN_ORDER_RC        = 2001
         private const val SCAN_PART_RC         = 2002
+        // Separators tried (in order) when one barcode holds Order, Part and Qty.
+        // "-" and "/" are not used because part numbers often contain them.
+        private val BARCODE_DELIMITERS = listOf("|", ";", ",", "\t", "\n", "\u001D")
     }
 
     private val prefs by lazy { getSharedPreferences("inventory", Context.MODE_PRIVATE) }
@@ -43,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etOrder: EditText
     private lateinit var etPart: EditText
     private lateinit var etQty: EditText
+    private lateinit var etRemarks: EditText
     private lateinit var spinnerLocation: Spinner
     private lateinit var btnSave: Button
     private lateinit var btnExport: Button
@@ -73,6 +79,7 @@ class MainActivity : AppCompatActivity() {
         etOrder         = findViewById(R.id.etOrder)
         etPart          = findViewById(R.id.etPart)
         etQty           = findViewById(R.id.etQty)
+        etRemarks       = findViewById(R.id.etRemarks)
         spinnerLocation = findViewById(R.id.spinnerLocation)
         btnSave         = findViewById(R.id.btnSave)
         btnExport       = findViewById(R.id.btnExport)
@@ -155,17 +162,47 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode != RESULT_OK) return
-        val scanned = data?.getStringExtra(ScannerActivity.EXTRA_BARCODE) ?: return
-        when (requestCode) {
-            SCAN_ORDER_RC -> etOrder.setText(scanned)
-            SCAN_PART_RC  -> etPart.setText(scanned)
+        val scanned = data?.getStringExtra(ScannerActivity.EXTRA_BARCODE)?.trim() ?: return
+        if (scanned.isEmpty()) return
+        if (requestCode != SCAN_ORDER_RC && requestCode != SCAN_PART_RC) return
+
+        val parts = splitCombinedBarcode(scanned)
+        if (parts != null) {
+            etOrder.setText(parts.first)
+            etPart.setText(parts.second)
+            val qtyDigits = parts.third.filter { it.isDigit() }
+            etQty.setText(qtyDigits)
+            val msg = if (qtyDigits.isEmpty()) "Quantity in barcode is not a number – please enter it"
+                      else "Order, Part and Qty filled from barcode"
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        } else {
+            // Not a combined barcode: fill only the field that was scanned.
+            when (requestCode) {
+                SCAN_ORDER_RC -> etOrder.setText(scanned)
+                SCAN_PART_RC  -> etPart.setText(scanned)
+            }
         }
     }
 
+    /** Splits "ORDER<sep>PART<sep>QTY": first = order, last = qty, middle = part. */
+    private fun splitCombinedBarcode(raw: String): Triple<String, String, String>? {
+        for (d in BARCODE_DELIMITERS) {
+            val p = raw.split(d).map { it.trim() }.filter { it.isNotEmpty() }
+            if (p.size >= 3) return Triple(p.first(), p.subList(1, p.size - 1).joinToString(d), p.last())
+        }
+        val ws = raw.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (ws.size >= 3) return Triple(ws.first(), ws.subList(1, ws.size - 1).joinToString(" "), ws.last())
+        return null
+    }
+
+    /** Removes tabs/newlines, which would break the stored row format. */
+    private fun clean(s: String) = s.replace(Regex("[\\t\\r\\n]+"), " ").trim()
+
     private fun saveEntry() {
-        val orderNo = etOrder.text.toString().trim()
-        val partNo  = etPart.text.toString().trim()
-        val qty     = etQty.text.toString().trim()
+        val orderNo = clean(etOrder.text.toString())
+        val partNo  = clean(etPart.text.toString())
+        val qty     = clean(etQty.text.toString())
+        val remarks = clean(etRemarks.text.toString())
         val loc     = spinnerLocation.selectedItem.toString()
         if (orderNo.isEmpty() || partNo.isEmpty() || qty.isEmpty()) {
             Toast.makeText(this, "Order No, Part No and Quantity are required", Toast.LENGTH_SHORT).show()
@@ -177,17 +214,79 @@ class MainActivity : AppCompatActivity() {
             partNo    = partNo,
             quantity  = qty,
             location  = loc,
-            timestamp = dateFormat.format(Date())
+            timestamp = dateFormat.format(Date()),
+            remarks   = remarks
         )
-        val serialized = "${entry.id}\t${entry.orderNo}\t${entry.partNo}\t${entry.quantity}\t${entry.location}\t${entry.timestamp}"
-        val existing   = prefs.getString("rows", "")!!
-        prefs.edit().putString("rows", if (existing.isEmpty()) serialized else "$existing\n$serialized").apply()
         allEntries.add(0, entry)
+        persistEntries()
         etOrder.text.clear()
         etPart.text.clear()
         etQty.text.clear()
+        etRemarks.text.clear()
         refreshList()
         Toast.makeText(this, "Saved ✓", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun editEntry(entry: InventoryEntry) {
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val form = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad / 2, pad, 0)
+        }
+        fun field(label: String, value: String, type: Int): EditText {
+            form.addView(TextView(this).apply { text = label })
+            return EditText(this).apply {
+                inputType = type
+                setText(value)
+                form.addView(this)
+            }
+        }
+        val etO = field("Order No", entry.orderNo, InputType.TYPE_CLASS_TEXT)
+        val etP = field("Part No", entry.partNo, InputType.TYPE_CLASS_TEXT)
+        val etQ = field("Physical Quantity", entry.quantity, InputType.TYPE_CLASS_NUMBER)
+        val etR = field("Remarks", entry.remarks,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
+
+        form.addView(TextView(this).apply { text = "Location" })
+        val locList = if (entry.location in locations) locations else locations + entry.location
+        val sp = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, locList)
+            setSelection(locList.indexOf(entry.location).coerceAtLeast(0))
+        }
+        form.addView(sp)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Edit Entry")
+            .setView(ScrollView(this).apply { addView(form) })
+            .setPositiveButton("Save", null)
+            .setNegativeButton("Cancel", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val o = clean(etO.text.toString())
+                val p = clean(etP.text.toString())
+                val q = clean(etQ.text.toString())
+                if (o.isEmpty() || p.isEmpty() || q.isEmpty()) {
+                    Toast.makeText(this, "Order No, Part No and Quantity are required", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val idx = allEntries.indexOfFirst { it.id == entry.id }
+                if (idx >= 0) {
+                    allEntries[idx] = entry.copy(
+                        orderNo  = o,
+                        partNo   = p,
+                        quantity = q,
+                        remarks  = clean(etR.text.toString()),
+                        location = sp.selectedItem.toString()
+                    )
+                    persistEntries()
+                    refreshList()
+                    Toast.makeText(this, "Entry updated", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
     }
 
     private fun deleteEntry(entry: InventoryEntry) {
@@ -231,6 +330,7 @@ class MainActivity : AppCompatActivity() {
     private fun parseLine(line: String): InventoryEntry? {
         val parts = line.split("\t")
         return when {
+            parts.size >= 7 -> InventoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6])
             parts.size == 6 -> InventoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
             parts.size == 5 -> InventoryEntry(UUID.randomUUID().toString(), parts[0], parts[1], parts[2], parts[3], parts[4])
             else -> null
@@ -239,7 +339,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun persistEntries() {
         prefs.edit().putString("rows", allEntries.reversed().joinToString("\n") {
-            "${it.id}\t${it.orderNo}\t${it.partNo}\t${it.quantity}\t${it.location}\t${it.timestamp}"
+            "${it.id}\t${it.orderNo}\t${it.partNo}\t${it.quantity}\t${it.location}\t${it.timestamp}\t${it.remarks}"
         }).apply()
     }
 
@@ -249,7 +349,8 @@ class MainActivity : AppCompatActivity() {
         else allEntries.filter { e ->
             e.orderNo.contains(searchQuery, ignoreCase = true) ||
             e.partNo.contains(searchQuery, ignoreCase = true) ||
-            e.location.contains(searchQuery, ignoreCase = true)
+            e.location.contains(searchQuery, ignoreCase = true) ||
+            e.remarks.contains(searchQuery, ignoreCase = true)
         }
         tvEntryCount.text = "${filtered.size} / ${allEntries.size} entries"
         tvEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
@@ -262,16 +363,20 @@ class MainActivity : AppCompatActivity() {
         card.findViewById<TextView>(R.id.tvPartNo).text    = "Part:  ${entry.partNo}"
         card.findViewById<TextView>(R.id.tvQty).text       = "Qty:   ${entry.quantity}"
         card.findViewById<TextView>(R.id.tvLocation).text  = "Loc:   ${entry.location}"
+        val tvRemarks = card.findViewById<TextView>(R.id.tvRemarks)
+        tvRemarks.text = "Remarks: ${entry.remarks}"
+        tvRemarks.visibility = if (entry.remarks.isBlank()) View.GONE else View.VISIBLE
         card.findViewById<TextView>(R.id.tvTimestamp).text = entry.timestamp
+        card.findViewById<ImageButton>(R.id.btnEdit).setOnClickListener { editEntry(entry) }
         card.findViewById<ImageButton>(R.id.btnDelete).setOnClickListener { deleteEntry(entry) }
         return card
     }
 
     private fun exportCsv() {
         if (allEntries.isEmpty()) { Toast.makeText(this, "No entries to export", Toast.LENGTH_SHORT).show(); return }
-        val header = "Order No,Part No,Physical Quantity,Location,Date\n"
+        val header = "Order No,Part No,Physical Quantity,Location,Remarks,Date\n"
         val rows   = allEntries.reversed().joinToString("\n") { e ->
-            listOf(e.orderNo, e.partNo, e.quantity, e.location, e.timestamp)
+            listOf(e.orderNo, e.partNo, e.quantity, e.location, e.remarks, e.timestamp)
                 .joinToString(",") { v -> "\"${v.replace("\"", "\"\"")}\"" }
         }
         try {
