@@ -40,6 +40,8 @@ class MainActivity : AppCompatActivity() {
         // Separators tried (in order) when one barcode holds Order, Part and Qty.
         // "-" and "/" are not used because part numbers often contain them.
         private val BARCODE_DELIMITERS = listOf("|", ";", ",", "\t", "\n", "\u001D")
+        // Order No is always the first 10 characters of the barcode; Part No follows.
+        private const val ORDER_NO_LENGTH = 10
     }
 
     private val prefs by lazy { getSharedPreferences("inventory", Context.MODE_PRIVATE) }
@@ -178,18 +180,25 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // e.g. "UFBXR6800284635CC900      60" -> code stays in the scanned field, 60 goes to Quantity.
+        // e.g. "UFBXR6800284635CC900      60":
+        //   Order No = first 10 chars, Part No = the rest, Quantity = number after the space.
         var code = scanned
         val lastToken = scanned.split(Regex("\\s+")).last()
         val qty = if (lastToken != scanned) normalizeQty(lastToken) else null
         if (qty != null) {
             code = scanned.substring(0, scanned.lastIndexOf(lastToken)).trim()
             etQty.setText(qty)
-            Toast.makeText(this, "Quantity filled from barcode", Toast.LENGTH_SHORT).show()
         }
-        when (requestCode) {
-            SCAN_ORDER_RC -> etOrder.setText(code)
-            SCAN_PART_RC  -> etPart.setText(code)
+        if (qty != null && code.length > ORDER_NO_LENGTH) {
+            etOrder.setText(code.substring(0, ORDER_NO_LENGTH))
+            etPart.setText(code.substring(ORDER_NO_LENGTH).trim())
+            Toast.makeText(this, "Order, Part and Qty filled from barcode", Toast.LENGTH_SHORT).show()
+        } else {
+            // Not the Order+Part+Qty format: fill only the scanned field.
+            when (requestCode) {
+                SCAN_ORDER_RC -> etOrder.setText(code)
+                SCAN_PART_RC  -> etPart.setText(code)
+            }
         }
     }
 
@@ -203,8 +212,6 @@ class MainActivity : AppCompatActivity() {
             val p = raw.split(d).map { it.trim() }.filter { it.isNotEmpty() }
             if (p.size >= 3) return Triple(p.first(), p.subList(1, p.size - 1).joinToString(d), p.last())
         }
-        val ws = raw.split(Regex("\\s+")).filter { it.isNotEmpty() }
-        if (ws.size >= 3) return Triple(ws.first(), ws.subList(1, ws.size - 1).joinToString(" "), ws.last())
         return null
     }
 
