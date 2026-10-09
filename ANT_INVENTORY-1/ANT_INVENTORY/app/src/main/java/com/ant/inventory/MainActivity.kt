@@ -170,19 +170,32 @@ class MainActivity : AppCompatActivity() {
         if (parts != null) {
             etOrder.setText(parts.first)
             etPart.setText(parts.second)
-            val qtyDigits = parts.third.filter { it.isDigit() }
-            etQty.setText(qtyDigits)
-            val msg = if (qtyDigits.isEmpty()) "Quantity in barcode is not a number – please enter it"
+            val qty = normalizeQty(parts.third) ?: ""
+            etQty.setText(qty)
+            val msg = if (qty.isEmpty()) "Quantity in barcode is not a number – please enter it"
                       else "Order, Part and Qty filled from barcode"
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-        } else {
-            // Not a combined barcode: fill only the field that was scanned.
-            when (requestCode) {
-                SCAN_ORDER_RC -> etOrder.setText(scanned)
-                SCAN_PART_RC  -> etPart.setText(scanned)
-            }
+            return
+        }
+
+        // e.g. "UFBXR6800284635CC900      60" -> code stays in the scanned field, 60 goes to Quantity.
+        var code = scanned
+        val lastToken = scanned.split(Regex("\\s+")).last()
+        val qty = if (lastToken != scanned) normalizeQty(lastToken) else null
+        if (qty != null) {
+            code = scanned.substring(0, scanned.lastIndexOf(lastToken)).trim()
+            etQty.setText(qty)
+            Toast.makeText(this, "Quantity filled from barcode", Toast.LENGTH_SHORT).show()
+        }
+        when (requestCode) {
+            SCAN_ORDER_RC -> etOrder.setText(code)
+            SCAN_PART_RC  -> etPart.setText(code)
         }
     }
+
+    /** "60" -> "60", "3.00" -> "3"; anything else (e.g. "3.5", "ABC") -> null. */
+    private fun normalizeQty(s: String): String? =
+        if (s.matches(Regex("\\d+(\\.0+)?"))) s.substringBefore('.') else null
 
     /** Splits "ORDER<sep>PART<sep>QTY": first = order, last = qty, middle = part. */
     private fun splitCombinedBarcode(raw: String): Triple<String, String, String>? {
