@@ -75,6 +75,15 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/tvScanResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textColor="#666666"
+        android:paddingTop="4dp"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/tvRemarks"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
