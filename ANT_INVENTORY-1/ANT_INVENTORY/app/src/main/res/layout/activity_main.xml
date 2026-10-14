@@ -73,8 +73,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:hint="Scan Result"
-                    android:inputType="text"
-                    android:singleLine="true"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:maxLines="4"
+                    android:gravity="top|start"
                     android:background="@drawable/field_background"
                     android:padding="12dp" />
 
