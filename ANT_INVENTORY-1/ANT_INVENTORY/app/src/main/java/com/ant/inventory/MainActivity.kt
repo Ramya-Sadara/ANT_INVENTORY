@@ -27,26 +27,23 @@ data class InventoryEntry(
     val quantity: String,
     val location: String,
     val timestamp: String,
-    val remarks: String = ""
+    val remarks: String = "",
+    val scanResult: String = ""
 )
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        private const val REQUEST_CAMERA_ORDER = 1001
-        private const val REQUEST_CAMERA_PART  = 1002
-        private const val SCAN_ORDER_RC        = 2001
-        private const val SCAN_PART_RC         = 2002
-        // Separators tried (in order) when one barcode holds Order, Part and Qty.
-        // "-" and "/" are not used because part numbers often contain them.
-        private val BARCODE_DELIMITERS = listOf("|", ";", ",", "\t", "\n", "\u001D")
-        // Order No is always the first 10 characters of the barcode; Part No follows.
+        private const val REQUEST_CAMERA = 1001
+        private const val SCAN_RC        = 2001
+        // Same rules as the Excel sheet: Order No = first 10 characters of the scan.
         private const val ORDER_NO_LENGTH = 10
     }
 
     private val prefs by lazy { getSharedPreferences("inventory", Context.MODE_PRIVATE) }
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
+    private lateinit var etScanResult: EditText
     private lateinit var etOrder: EditText
     private lateinit var etPart: EditText
     private lateinit var etQty: EditText
@@ -78,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindViews() {
+        etScanResult    = findViewById(R.id.etScanResult)
         etOrder         = findViewById(R.id.etOrder)
         etPart          = findViewById(R.id.etPart)
         etQty           = findViewById(R.id.etQty)
@@ -89,12 +87,7 @@ class MainActivity : AppCompatActivity() {
         tvEntryCount    = findViewById(R.id.tvEntryCount)
         listContainer   = findViewById(R.id.listContainer)
         tvEmpty         = findViewById(R.id.tvEmpty)
-        findViewById<ImageButton>(R.id.btnScanOrder).setOnClickListener {
-            requestCameraAndScan(REQUEST_CAMERA_ORDER, SCAN_ORDER_RC)
-        }
-        findViewById<ImageButton>(R.id.btnScanPart).setOnClickListener {
-            requestCameraAndScan(REQUEST_CAMERA_PART, SCAN_PART_RC)
-        }
+        findViewById<ImageButton>(R.id.btnScan).setOnClickListener { requestCameraAndScan() }
     }
 
     private fun setupSpinner() {
@@ -133,87 +126,76 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun requestCameraAndScan(cameraRequestCode: Int, scanRequestCode: Int) {
+    private fun requestCameraAndScan() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED) {
-            launchScanner(scanRequestCode)
+            launchScanner()
         } else {
-            pendingScanRc = scanRequestCode
             ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.CAMERA), cameraRequestCode
+                this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA
             )
         }
     }
 
-    private var pendingScanRc: Int = -1
-
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_CAMERA) return
         if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            launchScanner(pendingScanRc)
+            launchScanner()
         } else {
             Toast.makeText(this, "Camera permission is required to scan barcodes", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun launchScanner(scanRequestCode: Int) {
-        startActivityForResult(Intent(this, ScannerActivity::class.java), scanRequestCode)
+    private fun launchScanner() {
+        startActivityForResult(Intent(this, ScannerActivity::class.java), SCAN_RC)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK) return
+        if (requestCode != SCAN_RC || resultCode != RESULT_OK) return
         val scanned = data?.getStringExtra(ScannerActivity.EXTRA_BARCODE)?.trim() ?: return
         if (scanned.isEmpty()) return
-        if (requestCode != SCAN_ORDER_RC && requestCode != SCAN_PART_RC) return
 
-        val parts = splitCombinedBarcode(scanned)
-        if (parts != null) {
-            etOrder.setText(parts.first)
-            etPart.setText(parts.second)
-            val qty = normalizeQty(parts.third) ?: ""
-            etQty.setText(qty)
-            val msg = if (qty.isEmpty()) "Quantity in barcode is not a number – please enter it"
-                      else "Order, Part and Qty filled from barcode"
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-            return
-        }
+        // Scan Result shows exactly what was scanned; the other three are calculated from it.
+        etScanResult.setText(clean(scanned))
+        val p = parseScan(scanned)
+        etOrder.setText(p.order)
+        etPart.setText(p.part)
+        etQty.setText(p.qty)
 
-        // e.g. "UFBXR6800284635CC900      60":
-        //   Order No = first 10 chars, Part No = the rest, Quantity = number after the space.
-        var code = scanned
-        val lastToken = scanned.split(Regex("\\s+")).last()
-        val qty = if (lastToken != scanned) normalizeQty(lastToken) else null
-        if (qty != null) {
-            code = scanned.substring(0, scanned.lastIndexOf(lastToken)).trim()
-            etQty.setText(qty)
-        }
-        if (qty != null && code.length > ORDER_NO_LENGTH) {
-            etOrder.setText(code.substring(0, ORDER_NO_LENGTH))
-            etPart.setText(code.substring(ORDER_NO_LENGTH).trim())
-            Toast.makeText(this, "Order, Part and Qty filled from barcode", Toast.LENGTH_SHORT).show()
-        } else {
-            // Not the Order+Part+Qty format: fill only the scanned field.
-            when (requestCode) {
-                SCAN_ORDER_RC -> etOrder.setText(code)
-                SCAN_PART_RC  -> etPart.setText(code)
-            }
-        }
+        val msg = if (p.part.isEmpty() || p.qty.isEmpty())
+            "Scan read – please check Part No and Quantity"
+        else
+            "Order, Part and Qty filled from scan"
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private data class ScanParts(val order: String, val part: String, val qty: String)
+
+    /**
+     * Same calculations as the Excel sheet (text in A2):
+     *  Order No = LEFT(TRIM(A2),10)
+     *  Part No  = chars 11-15 + "-" + chars 16+ of the first word (blank if the word has 10 chars or fewer)
+     *  Quantity = last word after a space, if it is a number (blank otherwise)
+     */
+    private fun parseScan(raw: String): ScanParts {
+        val t = raw.trim().replace(Regex("\\s+"), " ")
+        val order = t.take(ORDER_NO_LENGTH)
+
+        val firstWord = t.substringBefore(' ')
+        val rest = if (firstWord.length > ORDER_NO_LENGTH) firstWord.substring(ORDER_NO_LENGTH) else ""
+        val part = if (rest.isEmpty()) "" else rest.take(5) + "-" + rest.drop(5)
+
+        val qty = if (' ' in t) normalizeQty(t.substringAfterLast(' ')) ?: "" else ""
+        return ScanParts(order, part, qty)
     }
 
     /** "60" -> "60", "3.00" -> "3"; anything else (e.g. "3.5", "ABC") -> null. */
     private fun normalizeQty(s: String): String? =
         if (s.matches(Regex("\\d+(\\.0+)?"))) s.substringBefore('.') else null
-
-    /** Splits "ORDER<sep>PART<sep>QTY": first = order, last = qty, middle = part. */
-    private fun splitCombinedBarcode(raw: String): Triple<String, String, String>? {
-        for (d in BARCODE_DELIMITERS) {
-            val p = raw.split(d).map { it.trim() }.filter { it.isNotEmpty() }
-            if (p.size >= 3) return Triple(p.first(), p.subList(1, p.size - 1).joinToString(d), p.last())
-        }
-        return null
-    }
 
     /** Removes tabs/newlines, which would break the stored row format. */
     private fun clean(s: String) = s.replace(Regex("[\\t\\r\\n]+"), " ").trim()
@@ -223,22 +205,25 @@ class MainActivity : AppCompatActivity() {
         val partNo  = clean(etPart.text.toString())
         val qty     = clean(etQty.text.toString())
         val remarks = clean(etRemarks.text.toString())
+        val scan    = clean(etScanResult.text.toString())
         val loc     = spinnerLocation.selectedItem.toString()
         if (orderNo.isEmpty() || partNo.isEmpty() || qty.isEmpty()) {
             Toast.makeText(this, "Order No, Part No and Quantity are required", Toast.LENGTH_SHORT).show()
             return
         }
         val entry = InventoryEntry(
-            id        = UUID.randomUUID().toString(),
-            orderNo   = orderNo,
-            partNo    = partNo,
-            quantity  = qty,
-            location  = loc,
-            timestamp = dateFormat.format(Date()),
-            remarks   = remarks
+            id         = UUID.randomUUID().toString(),
+            orderNo    = orderNo,
+            partNo     = partNo,
+            quantity   = qty,
+            location   = loc,
+            timestamp  = dateFormat.format(Date()),
+            remarks    = remarks,
+            scanResult = scan
         )
         allEntries.add(0, entry)
         persistEntries()
+        etScanResult.text.clear()
         etOrder.text.clear()
         etPart.text.clear()
         etQty.text.clear()
@@ -261,6 +246,7 @@ class MainActivity : AppCompatActivity() {
                 form.addView(this)
             }
         }
+        val etS = field("Scan Result", entry.scanResult, InputType.TYPE_CLASS_TEXT)
         val etO = field("Order No", entry.orderNo, InputType.TYPE_CLASS_TEXT)
         val etP = field("Part No", entry.partNo, InputType.TYPE_CLASS_TEXT)
         val etQ = field("Physical Quantity", entry.quantity, InputType.TYPE_CLASS_NUMBER)
@@ -293,11 +279,12 @@ class MainActivity : AppCompatActivity() {
                 val idx = allEntries.indexOfFirst { it.id == entry.id }
                 if (idx >= 0) {
                     allEntries[idx] = entry.copy(
-                        orderNo  = o,
-                        partNo   = p,
-                        quantity = q,
-                        remarks  = clean(etR.text.toString()),
-                        location = sp.selectedItem.toString()
+                        orderNo    = o,
+                        partNo     = p,
+                        quantity   = q,
+                        remarks    = clean(etR.text.toString()),
+                        scanResult = clean(etS.text.toString()),
+                        location   = sp.selectedItem.toString()
                     )
                     persistEntries()
                     refreshList()
@@ -347,10 +334,12 @@ class MainActivity : AppCompatActivity() {
             .forEach { allEntries.add(it) }
     }
 
+    /** Accepts 8-field (with scan result), 7-field (with remarks), 6-field and 5-field saved rows. */
     private fun parseLine(line: String): InventoryEntry? {
         val parts = line.split("\t")
         return when {
-            parts.size >= 7 -> InventoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6])
+            parts.size >= 8 -> InventoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7])
+            parts.size == 7 -> InventoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6])
             parts.size == 6 -> InventoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
             parts.size == 5 -> InventoryEntry(UUID.randomUUID().toString(), parts[0], parts[1], parts[2], parts[3], parts[4])
             else -> null
@@ -359,7 +348,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun persistEntries() {
         prefs.edit().putString("rows", allEntries.reversed().joinToString("\n") {
-            "${it.id}\t${it.orderNo}\t${it.partNo}\t${it.quantity}\t${it.location}\t${it.timestamp}\t${it.remarks}"
+            "${it.id}\t${it.orderNo}\t${it.partNo}\t${it.quantity}\t${it.location}\t${it.timestamp}\t${it.remarks}\t${it.scanResult}"
         }).apply()
     }
 
@@ -370,7 +359,8 @@ class MainActivity : AppCompatActivity() {
             e.orderNo.contains(searchQuery, ignoreCase = true) ||
             e.partNo.contains(searchQuery, ignoreCase = true) ||
             e.location.contains(searchQuery, ignoreCase = true) ||
-            e.remarks.contains(searchQuery, ignoreCase = true)
+            e.remarks.contains(searchQuery, ignoreCase = true) ||
+            e.scanResult.contains(searchQuery, ignoreCase = true)
         }
         tvEntryCount.text = "${filtered.size} / ${allEntries.size} entries"
         tvEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
@@ -386,6 +376,9 @@ class MainActivity : AppCompatActivity() {
         val tvRemarks = card.findViewById<TextView>(R.id.tvRemarks)
         tvRemarks.text = "Remarks: ${entry.remarks}"
         tvRemarks.visibility = if (entry.remarks.isBlank()) View.GONE else View.VISIBLE
+        val tvScan = card.findViewById<TextView>(R.id.tvScanResult)
+        tvScan.text = "Scan: ${entry.scanResult}"
+        tvScan.visibility = if (entry.scanResult.isBlank()) View.GONE else View.VISIBLE
         card.findViewById<TextView>(R.id.tvTimestamp).text = entry.timestamp
         card.findViewById<ImageButton>(R.id.btnEdit).setOnClickListener { editEntry(entry) }
         card.findViewById<ImageButton>(R.id.btnDelete).setOnClickListener { deleteEntry(entry) }
@@ -394,9 +387,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun exportCsv() {
         if (allEntries.isEmpty()) { Toast.makeText(this, "No entries to export", Toast.LENGTH_SHORT).show(); return }
-        val header = "Order No,Part No,Physical Quantity,Location,Remarks,Date\n"
+        val header = "Scan Result,Order No,Part No,Physical Quantity,Location,Remarks,Date\n"
         val rows   = allEntries.reversed().joinToString("\n") { e ->
-            listOf(e.orderNo, e.partNo, e.quantity, e.location, e.remarks, e.timestamp)
+            listOf(e.scanResult, e.orderNo, e.partNo, e.quantity, e.location, e.remarks, e.timestamp)
                 .joinToString(",") { v -> "\"${v.replace("\"", "\"\"")}\"" }
         }
         try {
