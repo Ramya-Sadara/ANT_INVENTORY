@@ -166,11 +166,12 @@ class MainActivity : AppCompatActivity() {
         etPart.setText(p.part)
         etQty.setText(p.qty)
 
+        val shown = clean(scanned)
         val msg = if (p.part.isEmpty() || p.qty.isEmpty())
-            "Scan read – please check Part No and Quantity"
+            "Scan read (${scanned.length} chars): \"$shown\"\nPart No / Quantity could not be found in it – please check"
         else
-            "Order, Part and Qty filled from scan"
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            "Order, Part and Qty filled from scan (${scanned.length} chars)"
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
     }
 
     private data class ScanParts(val order: String, val part: String, val qty: String)
