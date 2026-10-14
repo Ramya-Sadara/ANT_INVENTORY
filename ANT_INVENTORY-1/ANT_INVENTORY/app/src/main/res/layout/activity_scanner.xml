@@ -10,9 +10,11 @@
         android:layout_height="match_parent" />
 
     <View
-        android:layout_width="260dp"
-        android:layout_height="160dp"
+        android:layout_width="match_parent"
+        android:layout_height="110dp"
         android:layout_gravity="center"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:background="@drawable/scan_frame" />
 
     <TextView
@@ -20,12 +22,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginTop="200dp"
+        android:layout_marginTop="190dp"
         android:gravity="center"
-        android:text="Point camera at barcode"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:text="Put ONLY the label barcode inside the frame and hold steady"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/btnUseAnyway"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="120dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:backgroundTint="#1565C0"
+        android:textColor="#FFFFFF"
+        android:visibility="gone" />
 
     <ImageButton
         android:id="@+id/btnCancelScan"
