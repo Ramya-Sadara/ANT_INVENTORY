@@ -59,7 +59,7 @@
                 android:textColor="#1565C0"
                 android:paddingBottom="12dp" />
 
-            <!-- Order No with scan button -->
+            <!-- Scan Result with scan button: fills Order No, Part No and Quantity -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -68,58 +68,49 @@
                 android:gravity="center_vertical">
 
                 <EditText
-                    android:id="@+id/etOrder"
+                    android:id="@+id/etScanResult"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Order No / Barcode"
+                    android:hint="Scan Result"
                     android:inputType="text"
                     android:singleLine="true"
                     android:background="@drawable/field_background"
                     android:padding="12dp" />
 
                 <ImageButton
-                    android:id="@+id/btnScanOrder"
+                    android:id="@+id/btnScan"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:layout_marginStart="8dp"
                     android:src="@android:drawable/ic_menu_camera"
                     android:background="@drawable/scan_button_background"
                     android:tint="#FFFFFF"
-                    android:contentDescription="Scan Order barcode" />
+                    android:contentDescription="Scan barcode" />
 
             </LinearLayout>
 
-            <!-- Part No with scan button -->
-            <LinearLayout
+            <EditText
+                android:id="@+id/etOrder"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:hint="Order No"
+                android:inputType="text"
+                android:singleLine="true"
                 android:layout_marginBottom="10dp"
-                android:gravity="center_vertical">
+                android:background="@drawable/field_background"
+                android:padding="12dp" />
 
-                <EditText
-                    android:id="@+id/etPart"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Part No / Barcode"
-                    android:inputType="text"
-                    android:singleLine="true"
-                    android:background="@drawable/field_background"
-                    android:padding="12dp" />
-
-                <ImageButton
-                    android:id="@+id/btnScanPart"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:src="@android:drawable/ic_menu_camera"
-                    android:background="@drawable/scan_button_background"
-                    android:tint="#FFFFFF"
-                    android:contentDescription="Scan Part barcode" />
-
-            </LinearLayout>
+            <EditText
+                android:id="@+id/etPart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Part No"
+                android:inputType="text"
+                android:singleLine="true"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/field_background"
+                android:padding="12dp" />
 
             <EditText
                 android:id="@+id/etQty"
@@ -234,7 +225,7 @@
                 android:id="@+id/etSearch"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
-                android:hint="Search by Order, Part, Location or Remarks…"
+                android:hint="Search by Order, Part, Location, Remarks or Scan…"
                 android:inputType="text"
                 android:singleLine="true"
                 android:layout_marginBottom="12dp"
