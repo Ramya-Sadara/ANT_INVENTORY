@@ -4,6 +4,8 @@ import android.content.Intent
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Size
+import android.view.View
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -30,9 +32,10 @@ class ScannerActivity : AppCompatActivity() {
         private const val CONFIRM_READS = 2
 
         // Only a barcode whose centre is inside this middle area of the picture is accepted
-        // (fractions of the picture width / height).
-        private const val CENTER_X_TOLERANCE = 0.25f
-        private const val CENTER_Y_TOLERANCE = 0.10f
+        // (fractions of the picture width / height). The camera picture is wider than what
+        // is shown on screen, so the sideways limit is generous.
+        private const val CENTER_X_TOLERANCE = 0.45f
+        private const val CENTER_Y_TOLERANCE = 0.15f
 
         // A real label looks like:  QCEXR6900286672CC600      120
         // = a long first word (order + part), spaces, then the quantity at the end.
@@ -42,17 +45,25 @@ class ScannerActivity : AppCompatActivity() {
 
     private lateinit var previewView: PreviewView
     private lateinit var tvHint: TextView
+    private lateinit var btnUseAnyway: Button
     private lateinit var cameraExecutor: ExecutorService
 
-    // Created once and reused for every camera frame. Only the formats a long label
-    // barcode can use are read; retail codes (EAN/UPC/ITF) and QR codes are ignored.
+    // Created once and reused for every camera frame. All 1D barcode types are read, so a
+    // label barcode is never missed because of its type; the LABEL_PATTERN check below
+    // decides what is accepted automatically.
     private val scanner by lazy {
         BarcodeScanning.getClient(
             BarcodeScannerOptions.Builder()
                 .setBarcodeFormats(
                     Barcode.FORMAT_CODE_128,
                     Barcode.FORMAT_CODE_39,
-                    Barcode.FORMAT_CODE_93
+                    Barcode.FORMAT_CODE_93,
+                    Barcode.FORMAT_CODABAR,
+                    Barcode.FORMAT_ITF,
+                    Barcode.FORMAT_EAN_13,
+                    Barcode.FORMAT_EAN_8,
+                    Barcode.FORMAT_UPC_A,
+                    Barcode.FORMAT_UPC_E
                 )
                 .build()
         )
@@ -67,8 +78,16 @@ class ScannerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_scanner)
         previewView = findViewById(R.id.previewView)
         tvHint      = findViewById(R.id.tvScanHint)
+        btnUseAnyway = findViewById(R.id.btnUseAnyway)
         findViewById<ImageButton>(R.id.btnCancelScan).setOnClickListener {
             setResult(RESULT_CANCELED)
+            finish()
+        }
+        // Lets the user accept a barcode that did not match the label pattern.
+        btnUseAnyway.setOnClickListener {
+            val text = btnUseAnyway.tag as? String ?: return@setOnClickListener
+            scanned = true
+            setResult(RESULT_OK, Intent().putExtra(EXTRA_BARCODE, text))
             finish()
         }
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -125,9 +144,10 @@ class ScannerActivity : AppCompatActivity() {
             .addOnSuccessListener { barcodes ->
                 if (scanned) return@addOnSuccessListener
                 // Take the barcode nearest the middle of the frame; ignore the rest.
-                val inFrame = barcodes
+                val seen = barcodes
                     .filter { it.rawValue?.isNotBlank() == true }
                     .mapNotNull { b -> b.boundingBox?.let { box -> b to box } }
+                val inFrame = seen
                     .filter { (_, box) -> isInsideFrame(box, width, height) }
                     .minByOrNull { (_, box) -> distanceFromCenter(box, width, height) }
                     ?.first?.rawValue
@@ -136,8 +156,15 @@ class ScannerActivity : AppCompatActivity() {
                 val value = inFrame?.takeIf { LABEL_PATTERN.matches(it.trim()) }
                 if (inFrame != null && value == null) {
                     tvHint.text = "Ignored: $inFrame\nAim at the long label barcode"
+                    btnUseAnyway.tag = inFrame.trim()
+                    btnUseAnyway.text = "USE ANYWAY: ${inFrame.trim()}"
+                    btnUseAnyway.visibility = View.VISIBLE
                 } else if (inFrame == null) {
-                    tvHint.text = "Put ONLY the label barcode inside the frame and hold steady"
+                    tvHint.text = if (seen.isNotEmpty())
+                        "Barcode seen but not in the middle.\nMove it into the frame."
+                    else
+                        "No barcode detected.\nHold 15-20 cm away, keep it flat and steady, avoid glare."
+                    btnUseAnyway.visibility = View.GONE
                 }
 
                 if (value == null) {
